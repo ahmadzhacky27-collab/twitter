@@ -28,8 +28,8 @@
             </div>
         @endif
 
-        <!-- Notifikasi Peringatan Akses Ditolak -->
-        @if (request()->has('redirect') || (url()->previous() && str_contains(url()->previous(), '/feed')))
+        <!-- Notifikasi Peringatan Akses Ditolak -->        
+        @if (session('url.intended') || request()->has('redirect'))
             <div class="mb-4 bg-amber-950/60 border border-amber-800 text-amber-300 px-4 py-3 rounded-lg text-xs flex items-center gap-2">
                 <i class="fa-solid fa-triangle-exclamation text-amber-400 text-base"></i>
                 <span>Silakan login terlebih dahulu untuk mengakses halaman tersebut.</span>
