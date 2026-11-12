@@ -17,10 +17,9 @@ class FeedController extends Controller
      */
     public function index()
     {
-        // Ambil postingan diurutkan dari yang terbaru (descending), beserta relasi user, likes, dan comments
         $posts = Post::with(['user', 'likes', 'comments.user'])
-                    ->latest()
-                    ->get();
+            ->latest()
+            ->get();
 
         return view('feed.index', compact('posts'));
     }
@@ -30,7 +29,6 @@ class FeedController extends Controller
      */
     public function storePost(Request $request): RedirectResponse
     {
-        // Validasi: Teks atau gambar wajib ada (tidak boleh kosong keduanya)
         $request->validate([
             'content' => ['required_without:image', 'nullable', 'string'],
             'image' => ['required_without:content', 'nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
@@ -51,16 +49,60 @@ class FeedController extends Controller
     }
 
     /**
-     * Menghapus postingan (Hanya bisa dilakukan oleh pemilik sah).
+     * Memperbarui postingan (Teks, Ganti Gambar, atau Hapus Gambar).
      */
-    public function destroyPost(Post $post): RedirectResponse
+    public function updatePost(Request $request, Post $post): RedirectResponse
     {
-        // Verifikasi kepemilikan postingan (Otoritas Hapus)
+        // Otorisasi: Hanya pemilik postingan yang bisa mengedit
         if ($post->user_id !== Auth::id()) {
             abort(403, 'Aksi tidak diizinkan.');
         }
 
-        // Hapus file gambar post jika ada
+        $request->validate([
+            'content' => ['nullable', 'string'],
+            'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
+        ]);
+
+        // Validasi: Konten dan gambar tidak boleh kosong bersamaan
+        $hasImage = $request->hasFile('image') || ($post->image && !$request->boolean('remove_image'));
+        if (empty(trim($request->content)) && !$hasImage) {
+            return back()->withErrors(['content' => 'Postingan tidak boleh kosong.']);
+        }
+
+        $data = [
+            'content' => $request->content,
+        ];
+
+        // Opsi 1: Hapus gambar jika checkbox dicentang
+        if ($request->boolean('remove_image') && $post->image) {
+            if (Storage::disk('public')->exists($post->image)) {
+                Storage::disk('public')->delete($post->image);
+            }
+            $data['image'] = null;
+        }
+
+        // Opsi 2: Unggah gambar baru (timpa gambar lama)
+        if ($request->hasFile('image')) {
+            if ($post->image && Storage::disk('public')->exists($post->image)) {
+                Storage::disk('public')->delete($post->image);
+            }
+            $data['image'] = $request->file('image')->store('posts', 'public');
+        }
+
+        $post->update($data);
+
+        return back()->with('success', 'Postingan berhasil diperbarui.');
+    }
+
+    /**
+     * Menghapus postingan (Hanya bisa dilakukan oleh pemilik sah).
+     */
+    public function destroyPost(Post $post): RedirectResponse
+    {
+        if ($post->user_id !== Auth::id()) {
+            abort(403, 'Aksi tidak diizinkan.');
+        }
+
         if ($post->image && Storage::disk('public')->exists($post->image)) {
             Storage::disk('public')->delete($post->image);
         }
@@ -76,16 +118,15 @@ class FeedController extends Controller
     public function toggleLike(Post $post): RedirectResponse
     {
         $userId = Auth::id();
-
         $existingLike = Like::where('user_id', $userId)->where('post_id', $post->id)->first();
 
         if ($existingLike) {
-            $existingLike->delete(); // Batalkan like (unlike)
+            $existingLike->delete();
         } else {
             Like::create([
                 'user_id' => $userId,
                 'post_id' => $post->id,
-            ]); // Berikan like baru
+            ]);
         }
 
         return back();
@@ -114,5 +155,65 @@ class FeedController extends Controller
         ]);
 
         return back()->with('success', 'Komentar dikirim.');
+    }
+
+    /**
+     * Perbarui isi komentar (Hanya oleh pemilik komentar).
+     */
+    public function updateComment(Request $request, Comment $comment): RedirectResponse
+    {
+        if ($comment->user_id !== Auth::id()) {
+            abort(403, 'Anda tidak memiliki izin untuk mengedit komentar ini.');
+        }
+
+        $request->validate([
+            'comment' => ['nullable', 'string', 'max:500'],
+            'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
+        ]);
+
+        $hasImage = $request->hasFile('image') || ($comment->image && !$request->boolean('remove_image'));
+        if (empty(trim($request->comment)) && !$hasImage) {
+            return back()->withErrors(['comment' => 'Komentar tidak boleh kosong.']);
+        }
+
+        $data = [
+            'comment' => $request->comment,
+        ];
+
+        if ($request->boolean('remove_image') && $comment->image) {
+            if (Storage::disk('public')->exists($comment->image)) {
+                Storage::disk('public')->delete($comment->image);
+            }
+            $data['image'] = null;
+        }
+
+        if ($request->hasFile('image')) {
+            if ($comment->image && Storage::disk('public')->exists($comment->image)) {
+                Storage::disk('public')->delete($comment->image);
+            }
+            $data['image'] = $request->file('image')->store('comments', 'public');
+        }
+
+        $comment->update($data);
+
+        return back()->with('success', 'Komentar berhasil diperbarui.');
+    }
+
+    /**
+     * Hapus komentar (Hanya oleh pemilik komentar).
+     */
+    public function destroyComment(Comment $comment): RedirectResponse
+    {
+        if ($comment->user_id !== Auth::id()) {
+            abort(403, 'Anda tidak memiliki izin untuk menghapus komentar ini.');
+        }
+
+        if ($comment->image && Storage::disk('public')->exists($comment->image)) {
+            Storage::disk('public')->delete($comment->image);
+        }
+
+        $comment->delete();
+
+        return back()->with('success', 'Komentar berhasil dihapus.');
     }
 }

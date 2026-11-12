@@ -28,11 +28,14 @@ Route::middleware('auth')->group(function () {
     // Feed & Postingan
     Route::get('/feed', [FeedController::class, 'index'])->name('feed.index');
     Route::post('/posts', [FeedController::class, 'storePost'])->name('posts.store');
+    Route::patch('/posts/{post}', [FeedController::class, 'updatePost'])->name('posts.update');
     Route::delete('/posts/{post}', [FeedController::class, 'destroyPost'])->name('posts.destroy');
-    
+
     // Interaksi (Like & Komentar)
     Route::post('/posts/{post}/like', [FeedController::class, 'toggleLike'])->name('posts.like');
     Route::post('/posts/{post}/comments', [FeedController::class, 'storeComment'])->name('comments.store');
+    Route::patch('/comments/{comment}', [FeedController::class, 'updateComment'])->name('comments.update');
+    Route::delete('/comments/{comment}', [FeedController::class, 'destroyComment'])->name('comments.destroy');
 
     // Pengaturan Profil & Keamanan Akun
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
