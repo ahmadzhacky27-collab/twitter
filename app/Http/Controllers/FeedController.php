@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Post;
 use App\Models\Like;
 use App\Models\Comment;
+use App\Models\CommentLike;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -17,7 +18,14 @@ class FeedController extends Controller
      */
     public function index()
     {
-        $posts = Post::with(['user', 'likes', 'comments.user'])
+        $posts = Post::with([
+            'user',
+            'likes',
+            'comments.user',
+            'comments.likes',
+            'comments.replies.user',
+            'comments.replies.likes' // Pastikan relasi likes untuk replies dimuat
+        ])
             ->latest()
             ->get();
 
@@ -30,7 +38,7 @@ class FeedController extends Controller
     public function storePost(Request $request): RedirectResponse
     {
         $request->validate([
-            'content' => ['required_without:image', 'nullable', 'string'],
+            'content' => ['required_without:image', 'nullable', 'string', 'max:500'],
             'image' => ['required_without:content', 'nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
         ]);
 
@@ -53,17 +61,15 @@ class FeedController extends Controller
      */
     public function updatePost(Request $request, Post $post): RedirectResponse
     {
-        // Otorisasi: Hanya pemilik postingan yang bisa mengedit
         if ($post->user_id !== Auth::id()) {
             abort(403, 'Aksi tidak diizinkan.');
         }
 
         $request->validate([
-            'content' => ['nullable', 'string'],
+            'content' => ['nullable', 'string', 'max:500'],
             'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
         ]);
 
-        // Validasi: Konten dan gambar tidak boleh kosong bersamaan
         $hasImage = $request->hasFile('image') || ($post->image && !$request->boolean('remove_image'));
         if (empty(trim($request->content)) && !$hasImage) {
             return back()->withErrors(['content' => 'Postingan tidak boleh kosong.']);
@@ -73,7 +79,6 @@ class FeedController extends Controller
             'content' => $request->content,
         ];
 
-        // Opsi 1: Hapus gambar jika checkbox dicentang
         if ($request->boolean('remove_image') && $post->image) {
             if (Storage::disk('public')->exists($post->image)) {
                 Storage::disk('public')->delete($post->image);
@@ -81,7 +86,6 @@ class FeedController extends Controller
             $data['image'] = null;
         }
 
-        // Opsi 2: Unggah gambar baru (timpa gambar lama)
         if ($request->hasFile('image')) {
             if ($post->image && Storage::disk('public')->exists($post->image)) {
                 Storage::disk('public')->delete($post->image);
@@ -95,7 +99,7 @@ class FeedController extends Controller
     }
 
     /**
-     * Menghapus postingan (Hanya bisa dilakukan oleh pemilik sah).
+     * Menghapus postingan.
      */
     public function destroyPost(Post $post): RedirectResponse
     {
@@ -113,7 +117,7 @@ class FeedController extends Controller
     }
 
     /**
-     * Logika Toggle Like (Like / Unlike).
+     * Logika Toggle Like Postingan.
      */
     public function toggleLike(Post $post): RedirectResponse
     {
@@ -138,7 +142,7 @@ class FeedController extends Controller
     public function storeComment(Request $request, Post $post): RedirectResponse
     {
         $request->validate([
-            'comment' => ['required_without:image', 'nullable', 'string'],
+            'comment' => ['required_without:image', 'nullable', 'string', 'max:500'],
             'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
         ]);
 
@@ -158,7 +162,46 @@ class FeedController extends Controller
     }
 
     /**
-     * Perbarui isi komentar (Hanya oleh pemilik komentar).
+     * Menyimpan balasan komentar (Reply).
+     */
+    public function storeCommentReply(Request $request, Comment $comment): RedirectResponse
+    {
+        $request->validate([
+            'comment' => ['required', 'string', 'max:500'],
+        ]);
+
+        Comment::create([
+            'post_id' => $comment->post_id,
+            'user_id' => Auth::id(),
+            'parent_id' => $comment->id,
+            'comment' => $request->comment,
+        ]);
+
+        return back()->with('success', 'Balasan dikirim.');
+    }
+
+    /**
+     * Toggle Like pada Komentar.
+     */
+    public function toggleCommentLike(Comment $comment): RedirectResponse
+    {
+        $userId = Auth::id();
+        $existingLike = CommentLike::where('user_id', $userId)->where('comment_id', $comment->id)->first();
+
+        if ($existingLike) {
+            $existingLike->delete();
+        } else {
+            CommentLike::create([
+                'user_id' => $userId,
+                'comment_id' => $comment->id,
+            ]);
+        }
+
+        return back();
+    }
+
+    /**
+     * Perbarui isi komentar.
      */
     public function updateComment(Request $request, Comment $comment): RedirectResponse
     {
@@ -200,7 +243,7 @@ class FeedController extends Controller
     }
 
     /**
-     * Hapus komentar (Hanya oleh pemilik komentar).
+     * Hapus komentar.
      */
     public function destroyComment(Comment $comment): RedirectResponse
     {

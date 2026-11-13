@@ -10,18 +10,19 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'password', 'avatar', 'bio'])]
+#[Fillable(['name', 'email', 'password', 'avatar', 'bio', 'location'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
+    // Tambahkan relasi ke Post
+    public function posts()
+    {
+        return $this->hasMany(Post::class);
+    }
+
     protected function casts(): array
     {
         return [

@@ -31,13 +31,18 @@ Route::middleware('auth')->group(function () {
     Route::patch('/posts/{post}', [FeedController::class, 'updatePost'])->name('posts.update');
     Route::delete('/posts/{post}', [FeedController::class, 'destroyPost'])->name('posts.destroy');
 
-    // Interaksi (Like & Komentar)
+    // Interaksi Postingan (Like & Komentar Utama)
     Route::post('/posts/{post}/like', [FeedController::class, 'toggleLike'])->name('posts.like');
     Route::post('/posts/{post}/comments', [FeedController::class, 'storeComment'])->name('comments.store');
+
+    // Interaksi Komentar (Like, Reply, Update, Delete)
+    Route::post('/comments/{comment}/like', [FeedController::class, 'toggleCommentLike'])->name('comments.like');
+    Route::post('/comments/{comment}/reply', [FeedController::class, 'storeCommentReply'])->name('comments.reply');
     Route::patch('/comments/{comment}', [FeedController::class, 'updateComment'])->name('comments.update');
     Route::delete('/comments/{comment}', [FeedController::class, 'destroyComment'])->name('comments.destroy');
 
     // Pengaturan Profil & Keamanan Akun
+    Route::get('/profile/{user}', [ProfileController::class, 'show'])->name('profile.show');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::patch('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
