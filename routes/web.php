@@ -27,6 +27,7 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     // Feed & Postingan
     Route::get('/feed', [FeedController::class, 'index'])->name('feed.index');
+    Route::get('/posts/{post}', [FeedController::class, 'showPost'])->name('posts.show');
     Route::post('/posts', [FeedController::class, 'storePost'])->name('posts.store');
     Route::patch('/posts/{post}', [FeedController::class, 'updatePost'])->name('posts.update');
     Route::delete('/posts/{post}', [FeedController::class, 'destroyPost'])->name('posts.destroy');

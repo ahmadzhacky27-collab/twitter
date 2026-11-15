@@ -32,6 +32,20 @@ class FeedController extends Controller
         return view('feed.index', compact('posts'));
     }
 
+    public function showPost(Post $post)
+    {
+        $post->load([
+            'user',
+            'likes',
+            'comments.user',
+            'comments.likes',
+            'comments.replies.user',
+            'comments.replies.likes'
+        ]);
+
+        return view('posts.show', compact('post'));
+    }
+
     /**
      * Menyimpan postingan baru (Teks dan/atau Gambar).
      */
@@ -133,7 +147,7 @@ class FeedController extends Controller
             ]);
         }
 
-        return back();
+        return back()->with('active_post_id', $post->id);
     }
 
     /**
@@ -158,7 +172,7 @@ class FeedController extends Controller
             'image' => $imagePath,
         ]);
 
-        return back()->with('success', 'Komentar dikirim.');
+        return back()->with('success', 'Komentar berhasil dikirim')->with('active_post_id', $post->id);
     }
 
     /**
@@ -177,7 +191,7 @@ class FeedController extends Controller
             'comment' => $request->comment,
         ]);
 
-        return back()->with('success', 'Balasan dikirim.');
+        return back()->with('success', 'Balasan berhasil dikirim')->with('active_post_id', $comment->post_id);
     }
 
     /**
@@ -197,7 +211,7 @@ class FeedController extends Controller
             ]);
         }
 
-        return back();
+        return back()->with('active_post_id', $comment->post_id);
     }
 
     /**
@@ -239,7 +253,7 @@ class FeedController extends Controller
 
         $comment->update($data);
 
-        return back()->with('success', 'Komentar berhasil diperbarui.');
+        return back()->with('success', 'Komentar berhasil diperbarui.')->with('active_post_id', $comment->post_id);
     }
 
     /**
@@ -251,12 +265,14 @@ class FeedController extends Controller
             abort(403, 'Anda tidak memiliki izin untuk menghapus komentar ini.');
         }
 
+        $postId = $comment->post_id;
+
         if ($comment->image && Storage::disk('public')->exists($comment->image)) {
             Storage::disk('public')->delete($comment->image);
         }
 
         $comment->delete();
 
-        return back()->with('success', 'Komentar berhasil dihapus.');
+        return back()->with('success', 'Komentar berhasil dihapus.')->with('active_post_id', $postId);
     }
 }
