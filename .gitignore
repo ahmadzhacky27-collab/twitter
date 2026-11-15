@@ -25,3 +25,8 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Tambahan untuk membersihkan file asisten AI / editor lokal
+.claude/
+.mcp.json
+boost.json

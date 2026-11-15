@@ -166,7 +166,7 @@
                 </button>
             </div>
 
-            <!-- Kontainer Komentar Tertutup Secara Default (Menggunakan class hidden) -->
+            <!-- Kontainer Komentar Tertutup Secara Default -->
             <div id="comments-container-{{ $post->id }}" class="hidden space-y-3 mt-3 pt-2 border-t border-gray-800/60">
                 <div class="space-y-3 pl-2" id="comment-section">
                     @forelse ($post->comments->whereNull('parent_id') as $comment)
