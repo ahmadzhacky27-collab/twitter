@@ -37,7 +37,6 @@
     <!-- Main Container -->
     <div class="max-w-2xl mx-auto px-4 py-6">
 
-        <!-- Notifikasi Sukses -->
         @if (session('success'))
         <div class="mb-4 bg-emerald-950/60 border border-emerald-800 text-emerald-300 px-4 py-3 rounded-lg text-xs flex items-center gap-2">
             <i class="fa-solid fa-circle-check text-emerald-400 text-sm"></i>
@@ -45,7 +44,6 @@
         </div>
         @endif
 
-        <!-- Notifikasi Error Validasi Global -->
         @if ($errors->any())
         <div class="mb-4 bg-red-950/60 border border-red-800 text-red-300 px-4 py-3 rounded-lg text-xs">
             <ul class="list-disc list-inside">
@@ -61,9 +59,11 @@
             <form action="{{ route('posts.store') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <div class="flex gap-3">
-                    <img src="{{ Auth::user()->avatar ? asset('storage/' . Auth::user()->avatar) : 'https://ui-avatars.com/api/?name=' . urlencode(Auth::user()->name) }}"
-                        class="w-10 h-10 rounded-full object-cover">
-                    <div class="flex-1">
+                    <a href="{{ route('profile.show', Auth::id()) }}" class="shrink-0">
+                        <img src="{{ Auth::user()->avatar ? asset('storage/' . Auth::user()->avatar) : 'https://ui-avatars.com/api/?name=' . urlencode(Auth::user()->name) }}"
+                            class="w-10 h-10 rounded-full object-cover">
+                    </a>
+                    <div class="flex-1 min-w-0">
                         <textarea id="post-content" name="content" rows="3" placeholder="Apa yang sedang hangat dibicarakan?"
                             class="w-full bg-transparent border-none focus:ring-0 text-gray-100 resize-none text-base placeholder-gray-500 focus:outline-none"></textarea>
 
@@ -89,19 +89,21 @@
             </form>
         </div>
 
-        <!-- Daftar Feed Status / Tweets -->
+        <!-- Daftar Feed Status -->
         <div class="space-y-4">
             @forelse($posts as $post)
-            <div class="bg-gray-900 rounded-xl shadow-sm border border-gray-800 p-4" id="post-card-{{ $post->id }}">
-                <!-- User Header -->
+            <div class="bg-gray-900 rounded-xl shadow-sm border border-gray-800 p-4 overflow-hidden" id="post-card-{{ $post->id }}">
+                <!-- User Header (Foto & Nama Bisa Diklik) -->
                 <div class="flex justify-between items-start mb-3">
-                    <div class="flex items-center gap-3">
-                        <img src="{{ $post->user->avatar ? asset('storage/' . $post->user->avatar) : 'https://ui-avatars.com/api/?name=' . urlencode($post->user->name) }}"
-                            class="w-10 h-10 rounded-full object-cover">
-                        <div>
+                    <div class="flex items-center gap-3 min-w-0">
+                        <a href="{{ route('profile.show', $post->user->id) }}" class="hover:opacity-80 transition shrink-0">
+                            <img src="{{ $post->user->avatar ? asset('storage/' . $post->user->avatar) : 'https://ui-avatars.com/api/?name=' . urlencode($post->user->name) }}"
+                                class="w-10 h-10 rounded-full object-cover">
+                        </a>
+                        <div class="min-w-0">
                             <div class="flex items-center gap-2 flex-wrap">
                                 <a href="{{ route('profile.show', $post->user->id) }}"
-                                    class="font-bold text-gray-100 hover:text-blue-400 transition leading-tight">{{ $post->user->name }}</a>
+                                    class="font-bold text-gray-100 hover:text-blue-400 transition leading-tight truncate">{{ $post->user->name }}</a>
 
                                 @if ($post->user->location)
                                 <span class="text-gray-600">•</span>
@@ -118,14 +120,13 @@
                     </div>
 
                     @if (Auth::id() === $post->user_id)
-                    <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-3 shrink-0">
                         <button type="button" onclick="toggleEditPost({{ $post->id }})"
                             class="text-gray-400 hover:text-blue-400 text-sm transition" title="Edit Status">
                             <i class="fa-solid fa-pen"></i>
                         </button>
                         <form action="{{ route('posts.destroy', $post->id) }}" method="POST">
-                            @csrf
-                            @method('DELETE')
+                            @csrf @method('DELETE')
                             <button type="submit"
                                 onclick="return confirm('Apakah Anda yakin ingin menghapus postingan ini?')"
                                 class="text-gray-500 hover:text-red-400 text-sm transition"
@@ -137,20 +138,24 @@
                     @endif
                 </div>
 
-                <!-- Tampilan Postingan Normal (Bisa diklik ke halaman detail) -->
+                <!-- Tampilan Postingan Normal -->
                 <div id="post-view-{{ $post->id }}">
                     @if ($post->content)
-                    <a href="{{ route('posts.show', $post->id) }}" class="block group">
-                        <p class="text-gray-200 text-sm leading-relaxed mb-3 whitespace-pre-line group-hover:text-blue-300 transition">
-                            {{ $post->content }}
-                        </p>
-                    </a>
+                    <div class="mb-3">
+                        <a href="{{ route('posts.show', $post->id) }}" class="block group">
+                            <p class="text-gray-200 text-sm leading-relaxed whitespace-pre-line group-hover:text-blue-300 transition">
+                                {{ $post->content }}
+                            </p>
+                        </a>
+                    </div>
                     @endif
 
                     @if ($post->image)
-                    <a href="{{ route('posts.show', $post->id) }}" class="block rounded-lg overflow-hidden border border-gray-800 mb-3 max-h-96 hover:opacity-95 transition">
-                        <img src="{{ asset('storage/' . $post->image) }}" class="w-full object-cover">
-                    </a>
+                    <div class="mb-3 rounded-lg overflow-hidden border border-gray-800 bg-gray-950">
+                        <a href="{{ route('posts.show', $post->id) }}" class="block w-full max-h-80 overflow-hidden">
+                            <img src="{{ asset('storage/' . $post->image) }}" class="w-full h-full object-cover hover:opacity-95 transition">
+                        </a>
+                    </div>
                     @endif
                 </div>
 
@@ -158,8 +163,7 @@
                 @if (Auth::id() === $post->user_id)
                 <form id="post-edit-form-{{ $post->id }}" action="{{ route('posts.update', $post->id) }}"
                     method="POST" enctype="multipart/form-data" class="hidden space-y-3 mb-3">
-                    @csrf
-                    @method('PATCH')
+                    @csrf @method('PATCH')
                     <textarea name="content" rows="3"
                         class="w-full bg-gray-950 border border-gray-700 text-gray-100 rounded-lg p-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none">{{ $post->content }}</textarea>
 
@@ -172,27 +176,24 @@
 
                         @if ($post->image)
                         <label class="flex items-center gap-1.5 text-red-400 cursor-pointer">
-                            <input type="checkbox" name="remove_image" value="1"
-                                class="rounded bg-gray-950 border-gray-700 text-red-500 focus:ring-0">
+                            <input type="checkbox" name="remove_image" value="1" class="rounded bg-gray-950 border-gray-700 text-red-500 focus:ring-0">
                             <span>Hapus foto saat ini</span>
                         </label>
                         @endif
                     </div>
 
                     <div class="flex gap-2">
-                        <button type="submit"
-                            class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-1.5 rounded-lg font-semibold text-xs transition">
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-1.5 rounded-lg font-semibold text-xs transition">
                             Simpan Perubahan
                         </button>
-                        <button type="button" onclick="toggleEditPost({{ $post->id }})"
-                            class="bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-1.5 rounded-lg font-semibold text-xs transition">
+                        <button type="button" onclick="toggleEditPost({{ $post->id }})" class="bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-1.5 rounded-lg font-semibold text-xs transition">
                             Batal
                         </button>
                     </div>
                 </form>
                 @endif
 
-                <!-- Action Bar (Like & Tombol Komentar Toggle) -->
+                <!-- Action Bar -->
                 <div class="flex items-center gap-6 border-t border-b border-gray-800 py-2 my-3 text-sm text-gray-400">
                     <form action="{{ route('posts.like', $post->id) }}" method="POST">
                         @csrf
@@ -209,27 +210,27 @@
                     </button>
                 </div>
 
-                <!-- Kontainer Komentar & Form (Disembunyikan secara Default dengan class 'hidden') -->
+                <!-- Kontainer Komentar & Form Komentar Utama (Support Gambar) -->
                 <div id="comments-container-{{ $post->id }}" class="hidden space-y-3 mt-3 pt-2 border-t border-gray-800/60">
-                    <!-- List Komentar -->
                     <div class="space-y-3 pl-2">
                         @forelse ($post->comments->whereNull('parent_id') as $comment)
-                        @include('posts.partials.comment-item', ['comment' => $comment])
+                            @include('posts.partials.comment-item', ['comment' => $comment])
                         @empty
                         <p class="text-center text-gray-500 text-xs py-2">Belum ada komentar.</p>
                         @endforelse
                     </div>
 
-                    <!-- Form Input Komentar Baru -->
                     <form action="{{ route('comments.store', $post->id) }}" method="POST" enctype="multipart/form-data" class="mt-3">
                         @csrf
                         <div class="flex items-center gap-2">
                             <input type="text" name="comment" placeholder="Tulis komentar..."
                                 class="flex-1 bg-gray-950 border border-gray-800 text-gray-100 rounded-full px-3 py-1.5 text-xs focus:bg-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder-gray-500">
+                            
                             <label class="cursor-pointer text-gray-500 hover:text-blue-400" title="Lampirkan foto">
                                 <i class="fa-regular fa-image text-base"></i>
                                 <input type="file" name="image" accept="image/*" class="hidden">
                             </label>
+
                             <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-full text-xs font-semibold">
                                 Kirim
                             </button>
@@ -273,7 +274,6 @@
                 });
             }
 
-            // Auto-scroll dan buka kembali card serta komentar yang baru saja di-submit (Tanpa Blade syntax di dalam JS)
             const activePostId = "{{ session('active_post_id') }}";
             if (activePostId && activePostId !== "") {
                 const commentsContainer = document.getElementById(`comments-container-${activePostId}`);

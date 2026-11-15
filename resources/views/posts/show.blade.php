@@ -37,14 +37,12 @@
     <!-- Main Container -->
     <div class="max-w-2xl mx-auto px-4 py-6">
 
-        <!-- Tombol Kembali ke Beranda -->
         <div class="mb-4">
             <a href="{{ route('feed.index') }}" class="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-blue-400 transition">
                 <i class="fa-solid fa-arrow-left"></i> Kembali ke Beranda
             </a>
         </div>
 
-        <!-- Notifikasi Sukses -->
         @if (session('success'))
         <div class="mb-4 bg-emerald-950/60 border border-emerald-800 text-emerald-300 px-4 py-3 rounded-lg text-xs flex items-center gap-2">
             <i class="fa-solid fa-circle-check text-emerald-400 text-sm"></i>
@@ -52,7 +50,6 @@
         </div>
         @endif
 
-        <!-- Notifikasi Error Validasi -->
         @if ($errors->any())
         <div class="mb-4 bg-red-950/60 border border-red-800 text-red-300 px-4 py-3 rounded-lg text-xs">
             <ul class="list-disc list-inside">
@@ -63,13 +60,14 @@
         </div>
         @endif
 
-        <!-- Card Postingan Utama dengan ID Post Card -->
+        <!-- Card Postingan Utama -->
         <div class="bg-gray-900 rounded-xl shadow-sm border border-gray-800 p-4" id="post-card-{{ $post->id }}">
-            <!-- User Header -->
             <div class="flex justify-between items-start mb-3">
                 <div class="flex items-center gap-3">
-                    <img src="{{ $post->user->avatar ? asset('storage/' . $post->user->avatar) : 'https://ui-avatars.com/api/?name=' . urlencode($post->user->name) }}"
-                        class="w-10 h-10 rounded-full object-cover">
+                    <a href="{{ route('profile.show', $post->user->id) }}" class="hover:opacity-80 transition shrink-0">
+                        <img src="{{ $post->user->avatar ? asset('storage/' . $post->user->avatar) : 'https://ui-avatars.com/api/?name=' . urlencode($post->user->name) }}"
+                            class="w-10 h-10 rounded-full object-cover">
+                    </a>
                     <div>
                         <div class="flex items-center gap-2 flex-wrap">
                             <a href="{{ route('profile.show', $post->user->id) }}"
@@ -89,7 +87,6 @@
                     </div>
                 </div>
 
-                <!-- Otoritas Edit & Hapus Postingan -->
                 @if (Auth::id() === $post->user_id)
                 <div class="flex items-center gap-3">
                     <button type="button" onclick="toggleEditPost({{ $post->id }})"
@@ -108,7 +105,6 @@
                 @endif
             </div>
 
-            <!-- Tampilan Postingan Normal -->
             <div id="post-view-{{ $post->id }}">
                 @if ($post->content)
                 <div class="block">
@@ -125,7 +121,6 @@
                 @endif
             </div>
 
-            <!-- Form Edit Postingan Inline -->
             @if (Auth::id() === $post->user_id)
             <form id="post-edit-form-{{ $post->id }}" action="{{ route('posts.update', $post->id) }}"
                 method="POST" enctype="multipart/form-data" class="hidden space-y-3 mb-3">
@@ -155,7 +150,7 @@
             </form>
             @endif
 
-            <!-- Action Bar (Like & Tombol Toggle Komentar) -->
+            <!-- Action Bar -->
             <div class="flex items-center gap-6 border-t border-b border-gray-800 py-2 my-3 text-sm text-gray-400">
                 <form action="{{ route('posts.like', $post->id) }}" method="POST">
                     @csrf
@@ -171,18 +166,16 @@
                 </button>
             </div>
 
-            <!-- Kontainer Komentar & Form (Disembunyikan secara Default dengan class 'hidden') -->
+            <!-- Kontainer Komentar Tertutup Secara Default (Menggunakan class hidden) -->
             <div id="comments-container-{{ $post->id }}" class="hidden space-y-3 mt-3 pt-2 border-t border-gray-800/60">
-                <!-- List Komentar Utama -->
                 <div class="space-y-3 pl-2" id="comment-section">
                     @forelse ($post->comments->whereNull('parent_id') as $comment)
-                    @include('posts.partials.comment-item', ['comment' => $comment])
+                        @include('posts.partials.comment-item', ['comment' => $comment])
                     @empty
                     <p class="text-center text-gray-500 text-xs py-4">Belum ada komentar. Jadilah yang pertama berkomentar!</p>
                     @endforelse
                 </div>
 
-                <!-- Form Input Komentar Baru -->
                 <form action="{{ route('comments.store', $post->id) }}" method="POST" enctype="multipart/form-data" class="mt-4 pt-3 border-t border-gray-800">
                     @csrf
                     <div class="flex items-center gap-2">
@@ -226,7 +219,6 @@
             }
         }
 
-        // Auto-scroll dan buka kembali kontainer komentar setelah submit aksi (Bersih dari error linter)
         document.addEventListener("DOMContentLoaded", function() {
             const activePostId = "{{ session('active_post_id') }}";
             if (activePostId && activePostId !== "") {

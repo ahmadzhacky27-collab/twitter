@@ -24,7 +24,7 @@ class FeedController extends Controller
             'comments.user',
             'comments.likes',
             'comments.replies.user',
-            'comments.replies.likes' // Pastikan relasi likes untuk replies dimuat
+            'comments.replies.likes'
         ])
             ->latest()
             ->get();
@@ -151,13 +151,14 @@ class FeedController extends Controller
     }
 
     /**
-     * Menambahkan komentar pada postingan.
+     * Menambahkan komentar utama atau balasan (reply) beserta dukungan gambar.
      */
     public function storeComment(Request $request, Post $post): RedirectResponse
     {
         $request->validate([
             'comment' => ['required_without:image', 'nullable', 'string', 'max:500'],
-            'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:2048'],
+            'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif', 'max:2048'],
+            'parent_id' => ['nullable', 'exists:comments,id'],
         ]);
 
         $imagePath = null;
@@ -168,30 +169,14 @@ class FeedController extends Controller
         Comment::create([
             'post_id' => $post->id,
             'user_id' => Auth::id(),
+            'parent_id' => $request->parent_id, // Menangani balasan (reply) dengan benar
             'comment' => $request->comment,
             'image' => $imagePath,
         ]);
 
-        return back()->with('success', 'Komentar berhasil dikirim')->with('active_post_id', $post->id);
-    }
+        $message = $request->parent_id ? 'Balasan berhasil dikirim.' : 'Komentar berhasil dikirim.';
 
-    /**
-     * Menyimpan balasan komentar (Reply).
-     */
-    public function storeCommentReply(Request $request, Comment $comment): RedirectResponse
-    {
-        $request->validate([
-            'comment' => ['required', 'string', 'max:500'],
-        ]);
-
-        Comment::create([
-            'post_id' => $comment->post_id,
-            'user_id' => Auth::id(),
-            'parent_id' => $comment->id,
-            'comment' => $request->comment,
-        ]);
-
-        return back()->with('success', 'Balasan berhasil dikirim')->with('active_post_id', $comment->post_id);
+        return back()->with('success', $message)->with('active_post_id', $post->id);
     }
 
     /**
